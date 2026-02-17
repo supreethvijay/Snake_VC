@@ -388,6 +388,59 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
+// Touch Controls
+let touchStartX = 0;
+let touchStartY = 0;
+
+document.addEventListener('touchstart', (e) => {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+}, { passive: false });
+
+document.addEventListener('touchmove', (e) => {
+    e.preventDefault(); // Prevent scrolling
+}, { passive: false });
+
+document.addEventListener('touchend', (e) => {
+    if (!isGameRunning) {
+        startGame();
+        return;
+    }
+
+    if (changingDirection) return;
+
+    const touchEndX = e.changedTouches[0].clientX;
+    const touchEndY = e.changedTouches[0].clientY;
+
+    const dxTouch = touchEndX - touchStartX;
+    const dyTouch = touchEndY - touchStartY;
+
+    const goingUp = dy === -1;
+    const goingDown = dy === 1;
+    const goingRight = dx === 1;
+    const goingLeft = dx === -1;
+
+    if (Math.abs(dxTouch) > Math.abs(dyTouch)) {
+        // Horizontal swipe
+        if (dxTouch > 0 && !goingLeft) {
+            dx = 1; dy = 0;
+            changingDirection = true;
+        } else if (dxTouch < 0 && !goingRight) {
+            dx = -1; dy = 0;
+            changingDirection = true;
+        }
+    } else {
+        // Vertical swipe
+        if (dyTouch > 0 && !goingUp) {
+            dx = 0; dy = 1;
+            changingDirection = true;
+        } else if (dyTouch < 0 && !goingDown) {
+            dx = 0; dy = -1;
+            changingDirection = true;
+        }
+    }
+});
+
 // Click to start (for audio policy)
 document.addEventListener('click', () => {
     if (!isGameRunning) startGame();
