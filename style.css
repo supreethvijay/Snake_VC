@@ -1,0 +1,108 @@
+body {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #050505;
+    /* Deep black */
+    font-family: 'Press Start 2P', monospace;
+    color: #fff;
+    overflow: hidden;
+    /* Prevent scrollbars from shake */
+}
+
+.game-container {
+    position: relative;
+    text-align: center;
+}
+
+.ui-panel {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: rgba(0, 255, 0, 0.1);
+    border: 1px solid #0f0;
+    border-radius: 5px;
+    font-size: 14px;
+    box-shadow: 0 0 10px #0f0, inset 0 0 10px #0f0;
+    text-shadow: 0 0 5px #0f0;
+}
+
+.high-score-board {
+    color: #f1c40f;
+    /* Gold color */
+    text-shadow: 0 0 5px #f1c40f;
+}
+
+canvas {
+    border: 2px solid #0f0;
+    background-color: #000;
+    box-shadow: 0 0 20px rgba(0, 255, 0, 0.2), 0 0 40px rgba(0, 255, 0, 0.1);
+    display: block;
+}
+
+.shake {
+    animation: shake 0.5s cubic-bezier(.36, .07, .19, .97) both;
+}
+
+@keyframes shake {
+
+    10%,
+    90% {
+        transform: translate3d(-1px, 0, 0);
+    }
+
+    20%,
+    80% {
+        transform: translate3d(2px, 0, 0);
+    }
+
+    30%,
+    50%,
+    70% {
+        transform: translate3d(-4px, 0, 0);
+    }
+
+    40%,
+    60% {
+        transform: translate3d(4px, 0, 0);
+    }
+}
+
+#game-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    /* Center the overlay */
+    background: rgba(0, 0, 0, 0.9);
+    padding: 40px;
+    border-radius: 10px;
+    text-align: center;
+    border: 2px solid #f00;
+    width: 300px;
+    /* Fixed width for better centering appearance */
+    box-shadow: 0 0 30px #f00;
+}
+
+.hidden {
+    display: none;
+}
+
+h1 {
+    color: #f00;
+    margin-top: 0;
+    font-size: 24px;
+    text-shadow: 0 0 10px #f00, 0 0 20px #f00;
+}
+
+p {
+    margin-bottom: 0;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #fff;
+    text-shadow: 0 0 5px #fff;
+}

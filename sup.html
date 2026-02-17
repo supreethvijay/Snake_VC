@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake Game</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="game-container">
+        <div class="ui-panel">
+            <div class="score-board">
+                <span>Score: <span id="score">0</span></span>
+            </div>
+            <div class="level-board">
+                <span>Level: <span id="level">1</span></span>
+            </div>
+            <div class="high-score-board">
+                <span>Best: <span id="high-score">0</span></span>
+            </div>
+        </div>
+        <canvas id="gameCanvas" width="400" height="400"></canvas>
+        <div id="game-overlay">
+            <h1 id="game-message">Snake Game</h1>
+            <p>Press Space or Click to Start</p>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+
+</html>
