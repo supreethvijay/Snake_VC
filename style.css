@@ -106,3 +106,24 @@ p {
     color: #fff;
     text-shadow: 0 0 5px #fff;
 }
+
+@media (max-width: 600px) {
+    .game-container {
+        width: 100%;
+        padding: 10px;
+        box-sizing: border-box;
+    }
+
+    canvas {
+        width: 100%;
+        height: auto;
+        /* Maintain aspect ratio */
+        max-width: 400px;
+    }
+
+    .ui-panel {
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+    }
+}
