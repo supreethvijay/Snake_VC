@@ -4,38 +4,36 @@ const scoreElement = document.getElementById('score');
 const levelElement = document.getElementById('level');
 const highScoreElement = document.getElementById('high-score');
 const overlay = document.getElementById('game-overlay');
-const gameContainer = document.querySelector('.game-container');
+const gameWrapper = document.querySelector('.game-wrapper');
+const startBtn = document.getElementById('start-btn');
+const gameMessage = document.getElementById('game-message');
 
-// ... (existing code)
+// Speed Control UI
+const speedControlPanel = document.getElementById('speed-control');
+const speedValElement = document.getElementById('speed-val');
+const speedDownBtn = document.getElementById('speed-down');
+const speedUpBtn = document.getElementById('speed-up');
 
+// Game State
 let score = 0;
-let highScore = localStorage.getItem('snakeHighScore') || 0;
+let highScore = parseInt(localStorage.getItem('snakeHighScore')) || 0;
 let level = 1;
-
-// ... (existing code)
-
-function updateScore() {
-    scoreElement.innerText = score;
-    levelElement.innerText = level;
-
-    if (score > highScore) {
-        highScore = score;
-        localStorage.setItem('snakeHighScore', highScore);
-        // Special effect for new high score? (Maybe flash the text)
-    }
-    highScoreElement.innerText = highScore;
-}
-
-// ... (rest of the file)
-
-const GRID_SIZE = 20;
-const TILE_COUNT = canvas.width / GRID_SIZE;
-
-
-let gameSpeed = 150;
+let manualSpeedLevel = 1; // 1 to 5 (for levels 1-3)
+let gameSpeed = 180;
 let gameLoopTimeout;
 let isGameRunning = false;
 let changingDirection = false;
+
+// Snake state
+const GRID_SIZE = 20;
+const TILE_COUNT = canvas.width / GRID_SIZE;
+let snake = [];
+let dx = 1;
+let dy = 0;
+let food = { x: 15, y: 15 };
+
+// Particles
+let particles = [];
 
 // Audio Context
 let audioCtx;
@@ -54,43 +52,29 @@ function playOscillator(type, freq, duration, volume = 0.1) {
     if (!audioCtx) return;
     const osc = audioCtx.createOscillator();
     const gainNode = audioCtx.createGain();
-
     osc.type = type;
     osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-
     gainNode.gain.setValueAtTime(volume, audioCtx.currentTime);
     gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
-
     osc.connect(gainNode);
     gainNode.connect(audioCtx.destination);
-
     osc.start();
     osc.stop(audioCtx.currentTime + duration);
 }
 
 function playHiss() {
-    if (!audioCtx) return;
-    const bufferSize = audioCtx.sampleRate * 0.5; // 0.5 seconds
+    if (!audioCtx || Math.random() > 0.05) return;
+    const bufferSize = audioCtx.sampleRate * 0.2;
     const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
     const data = buffer.getChannelData(0);
-
-    for (let i = 0; i < bufferSize; i++) {
-        data[i] = Math.random() * 2 - 1;
-    }
-
+    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
     const noise = audioCtx.createBufferSource();
     noise.buffer = buffer;
-
-    // Filter to make it sound more like a hiss (Highpass)
     const bandpass = audioCtx.createBiquadFilter();
     bandpass.type = 'bandpass';
     bandpass.frequency.value = 1000;
-    bandpass.Q.value = 0.5;
-
     const gainNode = audioCtx.createGain();
-    gainNode.gain.setValueAtTime(0.05, audioCtx.currentTime);
-    gainNode.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
-
+    gainNode.gain.setValueAtTime(0.02, audioCtx.currentTime);
     noise.connect(bandpass);
     bandpass.connect(gainNode);
     gainNode.connect(audioCtx.destination);
@@ -98,19 +82,14 @@ function playHiss() {
 }
 
 function playEatSound() {
-    // High pitched "bloop"
     playOscillator('sine', 600, 0.1, 0.1);
     setTimeout(() => playOscillator('sine', 800, 0.1, 0.1), 50);
 }
 
 function playGameOverSound() {
-    // Low descending tone
     playOscillator('sawtooth', 150, 0.5, 0.2);
     setTimeout(() => playOscillator('sawtooth', 100, 0.5, 0.2), 200);
 }
-
-// Particles
-let particles = [];
 
 function createParticles(x, y, color) {
     for (let i = 0; i < 10; i++) {
@@ -131,9 +110,7 @@ function updateParticles() {
         p.x += p.vx;
         p.y += p.vy;
         p.life -= 0.05;
-        if (p.life <= 0) {
-            particles.splice(i, 1);
-        }
+        if (p.life <= 0) particles.splice(i, 1);
     }
 }
 
@@ -147,23 +124,63 @@ function drawParticles() {
 }
 
 function triggerShake() {
-    gameContainer.classList.add('shake');
-    setTimeout(() => {
-        gameContainer.classList.remove('shake');
-    }, 500);
+    gameWrapper.classList.add('shake');
+    setTimeout(() => gameWrapper.classList.remove('shake'), 500);
 }
 
-// Snake state
-let snake = [
-    { x: 10, y: 10 },
-    { x: 9, y: 10 },
-    { x: 8, y: 10 }
-];
-let dx = 1;
-let dy = 0;
+function updateGameSpeed() {
+    if (level <= 3) {
+        gameSpeed = 180 - (manualSpeedLevel * 25);
+        speedControlPanel.classList.remove('hidden');
+        speedValElement.innerText = manualSpeedLevel;
+    } else if (level <= 6) {
+        gameSpeed = 90; // Medium
+        speedControlPanel.classList.add('hidden');
+    } else {
+        gameSpeed = 60; // High
+        speedControlPanel.classList.add('hidden');
+    }
+}
 
-// Food state
-let food = { x: 15, y: 15 };
+function updateScore() {
+    scoreElement.innerText = score;
+    levelElement.innerText = level;
+
+    if (score > highScore) {
+        highScore = score;
+        localStorage.setItem('snakeHighScore', highScore.toString());
+    }
+    highScoreElement.innerText = highScore;
+}
+
+function checkLevelUp() {
+    let newLevel = Math.floor(score / 50) + 1;
+    if (newLevel > 10) newLevel = 10;
+
+    if (newLevel > level) {
+        level = newLevel;
+        playOscillator('square', 400, 0.2, 0.1);
+        updateGameSpeed();
+        updateScore();
+    }
+}
+
+function resetGame() {
+    score = 0;
+    level = 1;
+    manualSpeedLevel = 1;
+    snake = [
+        { x: 10, y: 10 },
+        { x: 9, y: 10 },
+        { x: 8, y: 10 }
+    ];
+    dx = 1;
+    dy = 0;
+    particles = [];
+    updateGameSpeed();
+    updateScore();
+    placeFood();
+}
 
 function startGame() {
     initAudio();
@@ -173,25 +190,8 @@ function startGame() {
     gameLoop();
 }
 
-function resetGame() {
-    score = 0;
-    level = 1;
-    gameSpeed = 150;
-    snake = [
-        { x: 10, y: 10 },
-        { x: 9, y: 10 },
-        { x: 8, y: 10 }
-    ];
-    dx = 1;
-    dy = 0;
-    updateScore();
-    placeFood();
-    particles = [];
-}
-
 function gameLoop() {
     if (!isGameRunning) return;
-
     gameLoopTimeout = setTimeout(() => {
         requestAnimationFrame(() => {
             update();
@@ -207,7 +207,7 @@ function update() {
     if (head.x < 0 || head.x >= TILE_COUNT || head.y < 0 || head.y >= TILE_COUNT) {
         playGameOverSound();
         triggerShake();
-        gameOver();
+        gameOver("WALL COLLISION");
         return;
     }
 
@@ -215,237 +215,144 @@ function update() {
         if (head.x === snake[i].x && head.y === snake[i].y) {
             playGameOverSound();
             triggerShake();
-            gameOver();
+            gameOver("SELF COLLISION");
             return;
         }
     }
 
     snake.unshift(head);
-
     if (head.x === food.x && head.y === food.y) {
         score += 10;
         playEatSound();
-        createParticles(food.x, food.y, '#f00'); // Red particles for food
-        updateScore();
+        createParticles(food.x, food.y, '#00d4ff');
         checkLevelUp();
+        updateScore();
         placeFood();
     } else {
         snake.pop();
-        // Randomly play hiss sound when moving
-        if (Math.random() < 0.1) {
-            playHiss();
-        }
+        playHiss();
     }
 
     updateParticles();
     changingDirection = false;
 }
 
-// Snake Head Image
 const headImage = new Image();
 headImage.src = 'snake-head.png';
 
 function draw() {
-    // Clear with semi-transparent black for trail effect? No, clean clear for now.
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Draw Grid (Subtle)
     ctx.strokeStyle = '#111';
     for (let i = 0; i < TILE_COUNT; i++) {
         ctx.beginPath();
-        ctx.moveTo(i * GRID_SIZE, 0);
-        ctx.lineTo(i * GRID_SIZE, canvas.height);
+        ctx.moveTo(i * GRID_SIZE, 0); ctx.lineTo(i * GRID_SIZE, canvas.height);
         ctx.stroke();
         ctx.beginPath();
-        ctx.moveTo(0, i * GRID_SIZE);
-        ctx.lineTo(canvas.width, i * GRID_SIZE);
+        ctx.moveTo(0, i * GRID_SIZE); ctx.lineTo(canvas.width, i * GRID_SIZE);
         ctx.stroke();
     }
 
-    // Draw Food (Glowing)
-    ctx.shadowBlur = 15;
-    ctx.shadowColor = "#f00";
-    ctx.fillStyle = '#f00';
-    ctx.fillRect(food.x * GRID_SIZE, food.y * GRID_SIZE, GRID_SIZE - 2, GRID_SIZE - 2);
+    ctx.shadowBlur = 20; ctx.shadowColor = "#00d4ff";
+    ctx.fillStyle = '#00d4ff';
+    ctx.beginPath();
+    ctx.roundRect(food.x * GRID_SIZE + 2, food.y * GRID_SIZE + 2, GRID_SIZE - 4, GRID_SIZE - 4, 4);
+    ctx.fill();
     ctx.shadowBlur = 0;
 
-    // Draw Snake
     snake.forEach((segment, index) => {
         if (index === 0) {
-            // Draw Head Image with Rotation
             ctx.save();
-            ctx.shadowBlur = 15;
-            ctx.shadowColor = "#0f0";
-
-            // Translate to center of the tile
+            ctx.shadowBlur = 15; ctx.shadowColor = "#00ff88";
             const cx = segment.x * GRID_SIZE + GRID_SIZE / 2;
             const cy = segment.y * GRID_SIZE + GRID_SIZE / 2;
-
             ctx.translate(cx, cy);
-
-            // Calculate rotation
-            // Default image is facing RIGHT
             let angle = 0;
-            if (dx === 1) angle = 0;
-            if (dx === -1) angle = Math.PI;
-            if (dy === 1) angle = Math.PI / 2;
-            if (dy === -1) angle = -Math.PI / 2;
-
+            if (dx === 1) angle = 0; else if (dx === -1) angle = Math.PI;
+            else if (dy === 1) angle = Math.PI / 2; else if (dy === -1) angle = -Math.PI / 2;
             ctx.rotate(angle);
-
-            // Draw image centered
             ctx.drawImage(headImage, -GRID_SIZE / 2, -GRID_SIZE / 2, GRID_SIZE, GRID_SIZE);
-
             ctx.restore();
-            ctx.shadowBlur = 0;
         } else {
-            // Draw Body (Glowing neon green)
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = "#0f0";
-            ctx.fillStyle = '#0f0';
-            ctx.fillRect(segment.x * GRID_SIZE, segment.y * GRID_SIZE, GRID_SIZE - 2, GRID_SIZE - 2);
-            ctx.shadowBlur = 0;
+            const alpha = 1 - (index / snake.length) * 0.6;
+            ctx.shadowBlur = 10; ctx.shadowColor = `rgba(0, 255, 136, ${alpha})`;
+            ctx.fillStyle = `rgba(0, 255, 136, ${alpha})`;
+            ctx.beginPath();
+            ctx.roundRect(segment.x * GRID_SIZE + 1, segment.y * GRID_SIZE + 1, GRID_SIZE - 2, GRID_SIZE - 2, 4);
+            ctx.fill();
         }
     });
-
+    ctx.shadowBlur = 0;
     drawParticles();
 }
 
 function placeFood() {
-    food = {
-        x: Math.floor(Math.random() * TILE_COUNT),
-        y: Math.floor(Math.random() * TILE_COUNT)
-    };
-    snake.forEach(segment => {
-        if (segment.x === food.x && segment.y === food.y) {
-            placeFood();
-        }
-    });
+    food = { x: Math.floor(Math.random() * TILE_COUNT), y: Math.floor(Math.random() * TILE_COUNT) };
+    if (snake.some(s => s.x === food.x && s.y === food.y)) placeFood();
 }
 
-function updateScore() {
-    scoreElement.innerText = score;
-    levelElement.innerText = level;
-}
-
-function checkLevelUp() {
-    let newLevel = 1;
-    if (score >= 200) newLevel = 5;
-    else if (score >= 150) newLevel = 4;
-    else if (score >= 100) newLevel = 3;
-    else if (score >= 50) newLevel = 2;
-
-    if (newLevel > level) {
-        level = newLevel;
-        if (level === 2) gameSpeed = 120;
-        if (level === 3) gameSpeed = 100;
-        if (level === 4) gameSpeed = 80;
-        if (level === 5) gameSpeed = 60;
-        // Level up sound/effect?
-        playOscillator('square', 400, 0.2, 0.1);
-    }
-}
-
-function gameOver() {
+function gameOver(reason) {
     isGameRunning = false;
     clearTimeout(gameLoopTimeout);
+    gameMessage.innerText = reason || "GAME OVER";
+    startBtn.innerText = "TRY AGAIN";
     overlay.classList.remove('hidden');
 }
 
+// Controls
 document.addEventListener('keydown', (e) => {
-    if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space"].indexOf(e.code) > -1) {
-        e.preventDefault();
-    }
+    if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space"].includes(e.code)) e.preventDefault();
+    if (e.code === 'Space' && !isGameRunning) { startGame(); return; }
+    if (changingDirection || !isGameRunning) return;
 
-    if (e.code === 'Space') {
-        if (!isGameRunning) startGame();
-        return;
-    }
+    if (e.key === 'ArrowUp' && dy !== 1) { dx = 0; dy = -1; changingDirection = true; }
+    else if (e.key === 'ArrowDown' && dy !== -1) { dx = 0; dy = 1; changingDirection = true; }
+    else if (e.key === 'ArrowLeft' && dx !== 1) { dx = -1; dy = 0; changingDirection = true; }
+    else if (e.key === 'ArrowRight' && dx !== -1) { dx = 1; dy = 0; changingDirection = true; }
+});
 
-    if (changingDirection) return;
-
-    const goingUp = dy === -1;
-    const goingDown = dy === 1;
-    const goingRight = dx === 1;
-    const goingLeft = dx === -1;
-
-    if (e.key === 'ArrowUp' && !goingDown) {
-        dx = 0; dy = -1;
-        changingDirection = true;
-    }
-    if (e.key === 'ArrowDown' && !goingUp) {
-        dx = 0; dy = 1;
-        changingDirection = true;
-    }
-    if (e.key === 'ArrowLeft' && !goingRight) {
-        dx = -1; dy = 0;
-        changingDirection = true;
-    }
-    if (e.key === 'ArrowRight' && !goingLeft) {
-        dx = 1; dy = 0;
-        changingDirection = true;
+speedUpBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (manualSpeedLevel < 5) {
+        manualSpeedLevel++;
+        updateGameSpeed();
     }
 });
 
-// Touch Controls
-let touchStartX = 0;
-let touchStartY = 0;
+speedDownBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (manualSpeedLevel > 1) {
+        manualSpeedLevel--;
+        updateGameSpeed();
+    }
+});
 
+startBtn.addEventListener('click', (e) => { e.stopPropagation(); startGame(); });
+
+// Swipe Controls
+let touchStartX = 0, touchStartY = 0;
 document.addEventListener('touchstart', (e) => {
     touchStartX = e.touches[0].clientX;
     touchStartY = e.touches[0].clientY;
 }, { passive: false });
-
-document.addEventListener('touchmove', (e) => {
-    e.preventDefault(); // Prevent scrolling
-}, { passive: false });
-
+document.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
 document.addEventListener('touchend', (e) => {
-    if (!isGameRunning) {
-        startGame();
-        return;
-    }
-
+    if (!isGameRunning) { startGame(); return; }
     if (changingDirection) return;
-
-    const touchEndX = e.changedTouches[0].clientX;
-    const touchEndY = e.changedTouches[0].clientY;
-
-    const dxTouch = touchEndX - touchStartX;
-    const dyTouch = touchEndY - touchStartY;
-
-    const goingUp = dy === -1;
-    const goingDown = dy === 1;
-    const goingRight = dx === 1;
-    const goingLeft = dx === -1;
-
+    const dxTouch = e.changedTouches[0].clientX - touchStartX;
+    const dyTouch = e.changedTouches[0].clientY - touchStartY;
     if (Math.abs(dxTouch) > Math.abs(dyTouch)) {
-        // Horizontal swipe
-        if (dxTouch > 0 && !goingLeft) {
-            dx = 1; dy = 0;
-            changingDirection = true;
-        } else if (dxTouch < 0 && !goingRight) {
-            dx = -1; dy = 0;
-            changingDirection = true;
-        }
+        if (dxTouch > 0 && dx !== -1) { dx = 1; dy = 0; }
+        else if (dxTouch < 0 && dx !== 1) { dx = -1; dy = 0; }
     } else {
-        // Vertical swipe
-        if (dyTouch > 0 && !goingUp) {
-            dx = 0; dy = 1;
-            changingDirection = true;
-        } else if (dyTouch < 0 && !goingDown) {
-            dx = 0; dy = -1;
-            changingDirection = true;
-        }
+        if (dyTouch > 0 && dy !== -1) { dx = 0; dy = 1; }
+        else if (dyTouch < 0 && dy !== 1) { dx = 0; dy = -1; }
     }
+    changingDirection = true;
 });
 
-// Click to start (for audio policy)
-document.addEventListener('click', () => {
-    if (!isGameRunning) startGame();
-});
-
-// Initialize initial state so it's not blank
+// Load high score on boot
+highScoreElement.innerText = highScore;
 resetGame();
 draw();
