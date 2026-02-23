@@ -1,53 +1,320 @@
-body {
+:root {
+    --primary: #00ff88;
+    --accent: #00d4ff;
+    --bg-dark: #050505;
+    --panel-bg: rgba(255, 255, 255, 0.05);
+    --border-color: rgba(0, 255, 136, 0.3);
+    --text-main: #ffffff;
+    --text-dim: #a0a0a0;
+    --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+}
+
+* {
+    box-sizing: border-box;
     margin: 0;
     padding: 0;
+}
+
+body {
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    font-family: 'Outfit', sans-serif;
+    height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
-    background-color: #050505;
-    /* Deep black */
-    font-family: 'Press Start 2P', monospace;
-    color: #fff;
     overflow: hidden;
-    /* Prevent scrollbars from shake */
 }
 
-.game-container {
-    position: relative;
-    text-align: center;
+.bg-glow {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 80vw;
+    height: 80vh;
+    background: radial-gradient(circle, rgba(0, 255, 136, 0.05) 0%, rgba(0, 212, 255, 0.02) 50%, transparent 100%);
+    z-index: -1;
+    filter: blur(100px);
+    animation: pulse-bg 10s infinite alternate;
 }
 
-.ui-panel {
+@keyframes pulse-bg {
+    0% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 0.5;
+    }
+
+    100% {
+        transform: translate(-50%, -50%) scale(1.2);
+        opacity: 0.8;
+    }
+}
+
+.game-wrapper {
+    width: 100%;
+    max-width: 500px;
+    padding: 20px;
     display: flex;
-    justify-content: space-between;
-    margin-bottom: 20px;
-    padding: 15px;
-    background: rgba(0, 255, 0, 0.1);
-    border: 1px solid #0f0;
-    border-radius: 5px;
-    font-size: 14px;
-    box-shadow: 0 0 10px #0f0, inset 0 0 10px #0f0;
-    text-shadow: 0 0 5px #0f0;
+    flex-direction: column;
+    gap: 30px;
+    position: relative;
+    animation: fade-in 1s ease-out;
 }
 
-.high-score-board {
-    color: #f1c40f;
-    /* Gold color */
-    text-shadow: 0 0 5px #f1c40f;
+@keyframes fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Header & Stats */
+.game-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.logo {
+    font-family: 'Press Start 2P', cursive;
+    font-size: 24px;
+    letter-spacing: 2px;
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 10px rgba(0, 255, 136, 0.5));
+    animation: logo-glow 2s infinite alternate;
+}
+
+@keyframes logo-glow {
+    from {
+        filter: drop-shadow(0 0 5px rgba(0, 255, 136, 0.3));
+    }
+
+    to {
+        filter: drop-shadow(0 0 15px rgba(0, 255, 136, 0.7));
+    }
+}
+
+.logo span {
+    font-weight: 300;
+    opacity: 0.8;
+}
+
+.stats-container {
+    display: flex;
+    width: 100%;
+    gap: 10px;
+    justify-content: center;
+}
+
+.stat-box {
+    background: var(--panel-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 12px 20px;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 100px;
+    transition: transform 0.3s ease, background 0.3s ease;
+}
+
+.stat-box.highlight {
+    border-color: var(--border-color);
+    background: rgba(0, 255, 136, 0.05);
+}
+
+.stat-box.control {
+    min-width: 120px;
+    border-color: var(--accent);
+}
+
+.speed-btns {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.speed-btns button {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.2s;
+}
+
+.speed-btns button:hover {
+    background: var(--accent);
+    color: black;
+    border-color: var(--accent);
+}
+
+.stat-box.hidden {
+    display: none;
+}
+
+.stat-box .label {
+    font-size: 10px;
+    font-weight: 800;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+}
+
+.stat-box .value {
+    font-size: 20px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Canvas Area */
+.canvas-area {
+    position: relative;
+    width: 400px;
+    height: 400px;
+    margin: 0 auto;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+}
+
+.canvas-shadow {
+    position: absolute;
+    inset: 0;
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    pointer-events: none;
+    z-index: 10;
 }
 
 canvas {
-    border: 2px solid #0f0;
     background-color: #000;
-    box-shadow: 0 0 20px rgba(0, 255, 0, 0.2), 0 0 40px rgba(0, 255, 0, 0.1);
     display: block;
+    width: 100% !important;
+    height: 100% !important;
 }
 
-.shake {
-    animation: shake 0.5s cubic-bezier(.36, .07, .19, .97) both;
+/* Overlay */
+.overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    z-index: 20;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: opacity 0.5s ease;
 }
 
+.overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.overlay-content {
+    text-align: center;
+    padding: 40px;
+    width: 100%;
+}
+
+h2 {
+    font-family: 'Press Start 2P', cursive;
+    color: var(--primary);
+    font-size: 20px;
+    margin-bottom: 12px;
+}
+
+.secondary {
+    color: var(--text-dim);
+    font-size: 14px;
+    margin-bottom: 30px;
+}
+
+.controls-hint {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.hint-item span {
+    font-size: 10px;
+    color: var(--text-dim);
+    display: block;
+    margin-bottom: 5px;
+}
+
+.hint-item p {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.divider {
+    width: 1px;
+    height: 30px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.primary-btn {
+    background: linear-gradient(45deg, var(--primary), var(--accent));
+    border: none;
+    padding: 16px 40px;
+    border-radius: 30px;
+    color: #000;
+    font-weight: 800;
+    font-size: 14px;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 4px 15px rgba(0, 255, 136, 0.3);
+    margin-bottom: 15px;
+}
+
+.primary-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 255, 136, 0.5);
+}
+
+.primary-btn:active {
+    transform: translateY(0);
+}
+
+.tap-hint {
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+}
+
+/* Footer */
+.game-footer {
+    text-align: center;
+    opacity: 0.3;
+}
+
+.game-footer p {
+    font-size: 10px;
+    letter-spacing: 2px;
+}
+
+/* Animations */
 @keyframes shake {
 
     10%,
@@ -72,58 +339,28 @@ canvas {
     }
 }
 
-#game-overlay {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    /* Center the overlay */
-    background: rgba(0, 0, 0, 0.9);
-    padding: 40px;
-    border-radius: 10px;
-    text-align: center;
-    border: 2px solid #f00;
-    width: 300px;
-    /* Fixed width for better centering appearance */
-    box-shadow: 0 0 30px #f00;
+.shake {
+    animation: shake 0.5s cubic-bezier(.36, .07, .19, .97) both;
 }
 
-.hidden {
-    display: none;
-}
-
-h1 {
-    color: #f00;
-    margin-top: 0;
-    font-size: 24px;
-    text-shadow: 0 0 10px #f00, 0 0 20px #f00;
-}
-
-p {
-    margin-bottom: 0;
-    font-size: 12px;
-    line-height: 1.5;
-    color: #fff;
-    text-shadow: 0 0 5px #fff;
-}
-
-@media (max-width: 600px) {
-    .game-container {
-        width: 100%;
-        padding: 10px;
-        box-sizing: border-box;
-    }
-
-    canvas {
+/* Responsive */
+@media (max-width: 480px) {
+    .canvas-area {
         width: 100%;
         height: auto;
-        /* Maintain aspect ratio */
-        max-width: 400px;
+        aspect-ratio: 1/1;
     }
 
-    .ui-panel {
-        flex-direction: column;
-        align-items: center;
-        gap: 10px;
+    .stats-container {
+        gap: 5px;
+    }
+
+    .stat-box {
+        padding: 10px;
+        min-width: 80px;
+    }
+
+    .logo {
+        font-size: 18px;
     }
 }
